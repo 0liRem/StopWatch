@@ -1,0 +1,146 @@
+<!-- Documentación 
+ 
+Autor: Olivier Viau
+
+Fin en mente: Utilizar hooks para crear un stopwatch
+
+
+Recursos:
+    Recursos proporcionados por Ludwing
+    Documentación React
+    ChatGPT, para consultas sobre sintaxis y dudas generales
+
+
+    Historial de modificaciones:
+    [000] 5/5/2025
+
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cronometro</title>
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <!-- ReactDOM -->
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <!-- Babel para procesar JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+        <script type="text/babel">
+            const { useState, useEffect, useRef } = React;
+    
+            const Stopwatch = () => {
+                const [isRunning, setIsRunning] = useState(false);
+                const [time, setTime] = useState(0);
+                const [sessions, setSessions] = useState([]);
+                const intervalRef = useRef(null);
+    
+                // para hacer que se divida minutos segundos y horas
+                const tiempo = (seconds) => {
+                    const hrs = Math.floor(seconds / 3600);
+                    const mins = Math.floor((seconds % 3600) / 60);
+                    const secs = seconds % 60;
+                    //lo regresa como string
+                    return [
+                        hrs.toString().padStart(2, '0'),
+                        mins.toString().padStart(2, '0'),
+                        secs.toString().padStart(2, '0')
+                    ].join(':');
+                };
+    
+                // pausa
+                const pausa = () => {
+                    if (isRunning) {
+                        //si esta corriendo el programa limpie el intervalo para pausarlo o continuar
+                        clearInterval(intervalRef.current);
+                    } else {
+                        const startTime = Date.now() - time * 1000; //Lo que hace es iniciar el tiempo del día de hoy, para obtener 
+                        intervalRef.current = setInterval(() => {
+                            setTime(Math.floor((Date.now() - startTime) / 1000));
+                        }, 1000); //pone el tiempo actual de referencia para iniciar a contar
+                    }
+                    setIsRunning(!isRunning);
+                };
+    
+                // reinicio
+                const reiniciar = () => {
+                    clearInterval(intervalRef.current);//lo limpia
+                    setIsRunning(false); //vuelve falso que esta corriendo el programa para volver a obtener la hora actual
+                    setTime(0);
+                };
+    
+                // Manejar guardar sesión
+                const sesion = () => {
+                    if (time > 0) {//tiene que haber pasado 1seg para guardar
+                        const newSession = {
+                            id: sessions.length + 1, //le da el nombre a la sesion
+                            time: tiempo(time), //guarad el tiempo
+                            timestamp: new Date().toLocaleTimeString() //crea una variable con la hora actual
+                        };
+                        setSessions([...sessions, newSession]);//setea la sesion
+                    }
+                };
+    
+                //Limpia el intervalo 
+                useEffect(() => {
+                    return () => clearInterval(intervalRef.current);
+                }, []);
+    //html
+                return (
+                    <div className="stopwatch-container">
+                        <h1>Cronómetro</h1>
+                        <div className="time-display">
+                            {tiempo(time)}
+                        </div>
+                        
+                        <div>
+                            <button 
+                                onClick={pausa}
+                                className={`inicio ${isRunning ? 'running' : ''}`}
+                            >
+                                {isRunning ? 'Pausar' : 'Iniciar'}
+                            </button>
+                            
+                            <button 
+                                onClick={reiniciar}
+                                className="reinicio"
+                            >
+                                Reiniciar
+                            </button>
+                            
+                            <button 
+                                onClick={sesion}
+                                disabled={time === 0}
+                                className="guardar"
+                            >
+                                Guardar
+                            </button>
+                        </div>
+                        
+                        {sessions.length > 0 && (
+                            <div className="lista-sesiones">
+                                <h2>Sesiones registradas</h2>
+                                <ul style={{ listStyle: 'none', padding: 0 }}>
+                                    {sessions.map((session) => (
+                                        <li 
+                                            key={session.id}
+                                            className="lista"
+                                        >
+                                            <strong>Guardado {session.id}   </strong>: {session.time} 
+                                            <span>
+                                                  Guardado a las {session.timestamp}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<Stopwatch />);
+        </script>
